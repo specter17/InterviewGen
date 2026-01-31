@@ -195,12 +195,6 @@ const App: React.FC = () => {
             </button>
             {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
           </div>
-
-          <footer className="pt-12 flex flex-wrap items-center justify-center gap-12 opacity-40 grayscale contrast-125">
-             {['Google', 'Meta', 'Amazon', 'Apple', 'Netflix'].map(brand => (
-               <span key={brand} className="font-black text-2xl tracking-tighter text-indigo-900 dark:text-white">{brand.toUpperCase()}</span>
-             ))}
-          </footer>
         </div>
       </div>
     );
