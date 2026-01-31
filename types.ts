@@ -1,29 +1,44 @@
 
-export type QuestionType = 'behavioral' | 'technical' | 'situational' | 'coding' | 'system-design' | 'culture-fit';
-export type Difficulty = 'easy' | 'medium' | 'hard';
-export type ExperienceLevel = 'junior' | 'mid' | 'senior' | 'unknown';
+export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+export type Category = 'technical' | 'behavioral' | 'scenario' | 'hr-fit';
+export type Duration = '15m' | '30m' | '60m';
+export type InterviewerStyle = 'faang' | 'startup' | 'service-based';
 
-export interface InterviewQuestion {
-  id: number;
+export interface ChatMessage {
+  role: 'interviewer' | 'user';
   text: string;
-  type: QuestionType;
-  difficulty: Difficulty;
+}
+
+// Fix: Define InterviewQuestion interface expected by QuestionCard
+export interface InterviewQuestion {
+  text: string;
+  type: 'behavioral' | 'technical' | 'situational' | 'coding' | 'system-design' | 'culture-fit' | string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  skills: string[];
   rationale: string;
-  follow_ups: string[];
+  follow_ups?: string[];
 }
 
-export interface GeneratorOutput {
-  job_role: string;
-  experience_level_hint: ExperienceLevel;
-  questions: InterviewQuestion[];
-}
-
-export interface UserPreferences {
-  numQuestions: number;
-  mix: {
-    behavioral: number;
-    technical: number;
-    situational: number;
-    coding: number;
+export interface ResumeAnalysis {
+  missingSkills: string[];
+  followUpQuestions: string[];
+  skillMap: {
+    dsa: number;
+    systemDesign: number;
+    communication: number;
   };
+}
+
+export interface InterviewConfig {
+  difficulty: Difficulty;
+  category: Category;
+  duration: Duration;
+  style: InterviewerStyle;
+}
+
+export interface EvaluationResult {
+  score: number;
+  feedback: string;
+  improvement_tips: string[];
+  model_answer_outline: string;
 }

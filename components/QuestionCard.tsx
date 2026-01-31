@@ -23,7 +23,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question }) => {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-xl">{typeIcons[question.type as keyof typeof typeIcons] || '❓'}</span>
@@ -40,6 +40,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question }) => {
         {question.text}
       </h3>
 
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {question.skills.map((skill, idx) => (
+          <span key={idx} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase tracking-wider rounded border border-indigo-100">
+            {skill}
+          </span>
+        ))}
+      </div>
+
       <div className="mb-4">
         <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border-l-4 border-indigo-400">
           <span className="font-semibold text-indigo-700 mr-1 italic">Rationale:</span> 
@@ -47,19 +55,21 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question }) => {
         </p>
       </div>
 
-      {question.follow_ups && question.follow_ups.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Follow-ups</h4>
-          <ul className="space-y-2">
-            {question.follow_ups.map((followUp, idx) => (
-              <li key={idx} className="text-sm text-slate-700 flex items-start gap-2">
-                <span className="text-indigo-400 mt-0.5">•</span>
-                {followUp}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mt-auto pt-4 border-t border-slate-50">
+        {question.follow_ups && question.follow_ups.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Follow-ups</h4>
+            <ul className="space-y-2">
+              {question.follow_ups.map((followUp, idx) => (
+                <li key={idx} className="text-sm text-slate-700 flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  {followUp}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

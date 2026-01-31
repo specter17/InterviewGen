@@ -1,83 +1,98 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { GeneratorOutput } from "../types";
+import { ResumeAnalysis, InterviewConfig, EvaluationResult } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+// Fix: Always use new GoogleGenAI({ apiKey: process.env.API_KEY }) as per strict guidelines.
+// Using a factory function to ensure fresh instances if needed.
+const createAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SCHEMA = {
+const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    job_role: { type: Type.STRING },
-    experience_level_hint: { 
-      type: Type.STRING,
-      description: "junior/mid/senior/unknown"
-    },
-    questions: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          id: { type: Type.INTEGER },
-          text: { type: Type.STRING },
-          type: { type: Type.STRING },
-          difficulty: { type: Type.STRING },
-          rationale: { type: Type.STRING },
-          follow_ups: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          }
-        },
-        required: ["id", "text", "type", "difficulty", "rationale", "follow_ups"]
-      }
+    missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+    followUpQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+    skillMap: {
+      type: Type.OBJECT,
+      properties: {
+        dsa: { type: Type.INTEGER },
+        systemDesign: { type: Type.INTEGER },
+        communication: { type: Type.INTEGER }
+      },
+      required: ["dsa", "systemDesign", "communication"]
     }
   },
-  required: ["job_role", "experience_level_hint", "questions"]
+  required: ["missingSkills", "followUpQuestions", "skillMap"]
 };
 
-export async function generateQuestions(
-  resumeText: string,
-  targetRole: string,
-  numQuestions: number,
-  mix: any
-): Promise<GeneratorOutput> {
-  const prompt = `
-Resume: """
-${resumeText}
-"""
+const EVALUATION_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    score: { type: Type.INTEGER },
+    feedback: { type: Type.STRING },
+    improvement_tips: { type: Type.ARRAY, items: { type: Type.STRING } },
+    model_answer_outline: { type: Type.STRING }
+  },
+  required: ["score", "feedback", "improvement_tips", "model_answer_outline"]
+};
 
-Role: "${targetRole}"
-Number_of_questions: ${numQuestions}
-Preferred_mix: ${JSON.stringify(mix)}
+export async function analyzeResume(
+  resume: { text?: string; file?: { data: string; mimeType: string } },
+  targetRole: string
+): Promise<ResumeAnalysis> {
+  const prompt = `Analyze this resume for a ${targetRole} position. Identify missing key skills, 3 likely follow-up questions based on their experience gaps, and score their skills (0-100) in DSA, System Design, and Communication based on their profile text/projects.`;
+  
+  const parts: any[] = [{ text: prompt }];
+  if (resume.file) parts.push({ inlineData: { data: resume.file.data, mimeType: resume.file.mimeType } });
+  else if (resume.text) parts.push({ text: resume.text });
 
-Act as an expert interview-question generator. Based on the resume and target role above, output role-specific, realistic questions that probe skills, experience, and potential gaps. 
+  // Fix: Create instance right before call
+  const ai = createAI();
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: { parts },
+    config: { responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA },
+  });
 
-Rules:
-1. Base questions on explicit resume content where possible (skills, metrics, projects).
-2. Tailor technical questions strictly to the job role.
-3. Mix: at least 2 behavioral, at least 2 role-technical, and others as situational/problem-based.
-4. Professional tone.
-5. Question length should be approx 1 sentence. Rationale 1 sentence. 
-`;
+  return JSON.parse(response.text!) as ResumeAnalysis;
+}
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        temperature: 0.3,
-        responseMimeType: "application/json",
-        responseSchema: SCHEMA,
-      },
-    });
+export async function getNextInterviewerMessage(
+  config: InterviewConfig,
+  history: { role: string; text: string }[],
+  role: string,
+  resume: string
+): Promise<string> {
+  const systemInstruction = `You are an elite interviewer from a ${config.style} company. 
+  Difficulty: ${config.difficulty}. Category: ${config.category}. 
+  Role: ${role}. Resume Summary: ${resume.substring(0, 1000)}.
+  Stay in character. Ask probing questions one at a time. If it's the start, greet and ask the first question. 
+  Be professional and slightly ${config.style === 'faang' ? 'intense' : config.style === 'startup' ? 'dynamic' : 'methodical'}.`;
 
-    const resultText = response.text;
-    if (!resultText) {
-      throw new Error("Empty response from AI");
-    }
+  // Fix: Create instance right before call
+  const ai = createAI();
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: history.map(h => ({ role: h.role === 'interviewer' ? 'model' : 'user', parts: [{ text: h.text }] })),
+    config: { systemInstruction, temperature: 0.7 }
+  });
 
-    return JSON.parse(resultText) as GeneratorOutput;
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    throw error;
-  }
+  return response.text || "I apologize, could you repeat that?";
+}
+
+export async function evaluateAnswer(
+  question: string,
+  answer: string,
+  role: string
+): Promise<EvaluationResult> {
+  const prompt = `Question: ${question}\nUser Answer: ${answer}\nTarget Role: ${role}\nEvaluate the answer. Provide a score (0-10), feedback, and improvement tips.`;
+  
+  // Fix: Create instance right before call
+  const ai = createAI();
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: prompt,
+    config: { responseMimeType: "application/json", responseSchema: EVALUATION_SCHEMA },
+  });
+
+  return JSON.parse(response.text!) as EvaluationResult;
 }
