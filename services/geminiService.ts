@@ -45,14 +45,15 @@ export async function analyzeResume(
   if (resume.file) parts.push({ inlineData: { data: resume.file.data, mimeType: resume.file.mimeType } });
   else if (resume.text) parts.push({ text: resume.text });
 
-  // Fix: Create instance right before call
+  // Fix: Create instance right before call and use gemini-3-pro-preview for complex reasoning tasks
   const ai = createAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3-pro-preview",
     contents: { parts },
     config: { responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA },
   });
 
+  // Fix: Access text property directly (not a method)
   return JSON.parse(response.text!) as ResumeAnalysis;
 }
 
@@ -68,14 +69,15 @@ export async function getNextInterviewerMessage(
   Stay in character. Ask probing questions one at a time. If it's the start, greet and ask the first question. 
   Be professional and slightly ${config.style === 'faang' ? 'intense' : config.style === 'startup' ? 'dynamic' : 'methodical'}.`;
 
-  // Fix: Create instance right before call
+  // Fix: Create instance right before call and use gemini-3-pro-preview for complex reasoning tasks
   const ai = createAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3-pro-preview",
     contents: history.map(h => ({ role: h.role === 'interviewer' ? 'model' : 'user', parts: [{ text: h.text }] })),
     config: { systemInstruction, temperature: 0.7 }
   });
 
+  // Fix: Access text property directly
   return response.text || "I apologize, could you repeat that?";
 }
 
@@ -86,13 +88,14 @@ export async function evaluateAnswer(
 ): Promise<EvaluationResult> {
   const prompt = `Question: ${question}\nUser Answer: ${answer}\nTarget Role: ${role}\nEvaluate the answer. Provide a score (0-10), feedback, and improvement tips.`;
   
-  // Fix: Create instance right before call
+  // Fix: Create instance right before call and use gemini-3-pro-preview for complex reasoning tasks
   const ai = createAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3-pro-preview",
     contents: prompt,
     config: { responseMimeType: "application/json", responseSchema: EVALUATION_SCHEMA },
   });
 
+  // Fix: Access text property directly
   return JSON.parse(response.text!) as EvaluationResult;
 }
