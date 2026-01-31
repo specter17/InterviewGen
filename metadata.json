@@ -1,0 +1,5 @@
+{
+  "name": "InterviewGen ",
+  "description": "An AI-powered interview question generator that crafts role-specific, realistic questions by analyzing candidate resumes and target job roles.",
+  "requestFramePermissions": []
+}
